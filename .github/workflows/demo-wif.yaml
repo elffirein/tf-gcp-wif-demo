@@ -1,35 +1,87 @@
-name: Connect to GCP and List Instances
+# name: Connect to GCP and List Instances
+
+# on:
+#   push:
+#     branches: [ "main" ]
+
+# env:
+#   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
+# jobs:
+#   setup-prepare-list:
+#     name: Setup, Prepare,
+#     runs-on: ubuntu-latest
+
+#     permissions:
+#       contents: 'read'
+#       id-token: 'write'
+
+#     steps:
+#     - name: Checkout
+#       uses: actions/checkout@v3
+
+#     # Configure Workload Identity Federation and generate an access token.
+#     - id: 'auth'
+#       name: 'Authenticate to Google Cloud'
+#       uses: 'google-github-actions/auth@v1'
+#       with:
+#         token_format: 'access_token'
+#         workload_identity_provider:  ${{ secrets.WORKLOAD_IDENTITY_PROVIDER_ID }}
+#         service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+#     # List the instances in the project
+#     - name: List Instances
+#       run: |-
+#         gcloud compute instances list --project $PROJECT_ID
+
+name: 'Terraform'
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
+  pull_request:
 
-env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+permissions:
+  contents: read
+  id-token: 'write'
 
 jobs:
-  setup-prepare-list:
-    name: Setup, Prepare,
+  terraform:
+    name: 'Terraform'
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: 'read'
-      id-token: 'write'
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
+    # Checkout the repository to the GitHub Actions runner
     - name: Checkout
       uses: actions/checkout@v3
 
-    # Configure Workload Identity Federation and generate an access token.
-    - id: 'auth'
-      name: 'Authenticate to Google Cloud'
-      uses: 'google-github-actions/auth@v1'
+    - id: auth
+      uses: google-github-actions/auth@v2.0.0  
       with:
-        token_format: 'access_token'
-        workload_identity_provider:  ${{ secrets.WORKLOAD_IDENTITY_PROVIDER_ID }}
+        workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER_ID }}
         service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-    # List the instances in the project
-    - name: List Instances
-      run: |-
-        gcloud compute instances list --project $PROJECT_ID
+
+          
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+
+    - name: Terraform Init
+      run: terraform init
+
+
+    # Generates an execution plan for Terraform
+    - name: Terraform Plan
+      run: terraform plan -input=false
+
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve -input=false
