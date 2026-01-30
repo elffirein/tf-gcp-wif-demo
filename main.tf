@@ -4,4 +4,5 @@ resource "google_storage_bucket" "mybucket" {
   project = var.gcp_project
   force_destroy = true
   public_access_prevention = "enforced"
+  uniform_bucket_level_access = true
 }
